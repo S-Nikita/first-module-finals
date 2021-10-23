@@ -5,7 +5,6 @@ class Vk:
 
     def __init__(self, token, album_id):
         self.album_id = album_id
-        self.token = token
         self.params = {
             "v": '5.131',
             "access_token": token
@@ -38,82 +37,41 @@ class Vk:
         print('  Получение метаданных фотографий профиля пользователя')
         res = requests.get(url=url, params=params)
 
-        if res.status_code == 200:
-            result = res.json()['response']['items']
-            print('    * Метаданные фотографий профиля пользователя были успешно получены')
-        else:
-            result = []
-            print('    * Произошла ошибка при получении информации о фотографиях пользователя')
-            print(f"    ** Код ошибки: {res.status_code}")
+        res.raise_for_status()
+        result = res.json()['response']['items']
+        print('    * Метаданные фотографий профиля пользователя были успешно получены')
+
         return result
 
-    # Присваивание названий фотографиям на основе кол-ва лайков и даты загрузки в систему ВК
-    def _get_file_name(self):
-        # Инициализация необходимых переменных
-        likes = []
-        dates = []
-        json_dict = []
-        file_name = ''
-        result = self.result
-
-        # Создание списков с кол-вом лайков и дат для каждой из фотографий
-        for item in result:
-            likes += [item['likes']['count']]
-            dates += [item['date']]
-        
-        # Получение финального названия каждой фотографии
-        for i, like in enumerate(likes):
-            j = 0
-            ## Анализ значений кол-ва лайков у фотографий, если значения не уникальны, 
-            ## к итоговому названию добавляется дата загрузки фотографии в систему вк
-            while j < len(likes):
-                if i != j:
-                    if likes[j] == like:
-                        file_name = f"{result[i]['likes']['count']}_{result[i]['date']}"
-                    else:
-                        file_name = str(likes[i])
-                j += 1
-            file_name += '.jpg'
-            json_dict += [{"file_name": file_name}]
-
-        return json_dict
-
-    # Добавление информации о ссылке для скачивания фотографии и ее размере в итоговый словарь
+    # Получение словаря с информацией о фотографиях пользователя вк
     def get_photos_metadata(self):
-        result = self.result
+        result = self._get_photos()
         json_dict = []
-        if result:
-            json_dict = self._get_file_name()
-            for i, item in enumerate(result):
-                size_types = []
-                max_size = ''
-                ## Градация размеров фотографии от большого к меньшему:
-                for size in item['sizes']:
-                    size_types += size['type']
-                if size_types.count('w') > 0:
-                    max_size = 'w'
-                elif size_types.count('z') > 0:
-                    max_size = 'z'
-                elif size_types.count('y') > 0:
-                    max_size = 'y'
-                elif size_types.count('x') > 0:
-                    max_size = 'x'
-                elif size_types.count('r') > 0:
-                    max_size = 'r'
-                elif size_types.count('q') > 0:
-                    max_size = 'q'
-                elif size_types.count('p') > 0:
-                    max_size = 'p'
-                elif size_types.count('o') > 0:
-                    max_size = 'o'
-                elif size_types.count('m') > 0:
-                    max_size = 'm'
-                elif size_types.count('s') > 0:
-                    max_size = 's'
-                url = item['sizes'][size_types.index(max_size)]['url']
-                
-                json_dict[i]["size"] = max_size
-                json_dict[i]["url"] = url
+        likes = []
+
+        for item in result:
+            item_dict = {}
+            # Список лайков по всем фотографиям пользователя
+            likes = [photo_info['likes']['count'] for photo_info in result]
+
+            # При наличии дубликата в значении кол-ва лайков у фото к названию добавляется дата фотографии
+            if likes.count(item['likes']['count']) > 1:
+                item_dict['file_name'] = f"{item['likes']['count']}_{item['date']}.jpg"
+            else:
+                item_dict['file_name'] = f"{item['likes']['count']}.jpg"
+
+            # Создание списков с информацией о фотографии 
+            # для дальнейшего получения ссылки на фотографию с самым большим разрешением
+            width_list = [photo['width'] for photo in item['sizes']]
+            type_list = [photo['type'] for photo in item['sizes']]
+            url_list = [photo['url'] for photo in item['sizes']]
+
+            # Получение значений типа размера и ссылки на фотографию с данным типом размера 
+            # в зависимости от самого большого значения ширины фотографии
+            item_dict['size'] = type_list[width_list.index(max(width_list))]
+            item_dict['url'] = url_list[width_list.index(max(width_list))]
+
+            json_dict += [item_dict]
 
         return json_dict
 

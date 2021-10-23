@@ -1,11 +1,12 @@
+import requests
 from vk import Vk
 from ya import Ya
 
 if __name__ == '__main__':
-    token_vk = '958eb5d439726565e9333aa30e50e0f937ee432e927f0dbd541c541887d919a7c56f95c04217915c32008'
-    album_id = 'profile'
+    user_id = input('Введите идентификатор пользователя: ')
+    token_vk = input('Введите значение токена для API VK: ')
+    album_id = input('Введите название альбома, для скачивания фото пользователя ВК(profile, wall, saved): ')
 
-    token_ya = 'TOKEN_PLACEHOLDER'
 
     print('Запуск программы')
     print('#########################################################')
@@ -13,16 +14,13 @@ if __name__ == '__main__':
     json_dict = photos.get_photos_metadata()
 
     if json_dict:
+        token_ya = input('Введите значение токена для API Yandex: ')
         uploader = Ya(token_ya, json_dict)
         response_status = uploader.upload_to_ya()
-        if response_status == 200 or response_status == 201:
-            print('  Все необходимые файлы были загружены')
-            print('#########################################################')
-            print('Выполнение программы завершено успешно')
-        else:
-            print('  Процесс загрузки файлов завершен с ошибкой, код: ', response_status)
-            print('#########################################################')
-            print('Выполнение программы завершено c ошибкой')
+        response_status.raise_for_status()
+        print('  Все необходимые файлы были загружены')
+        print('#########################################################')
+        print('Выполнение программы завершено успешно')
     else:
         print('#########################################################')
         print('Выполнение программы остановлено, процесс был завершен с ошибкой: Ошибка при получении данных из социальной сети')
