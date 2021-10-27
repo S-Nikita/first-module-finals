@@ -1,6 +1,8 @@
 import requests
 import json
 import os.path
+from time import sleep
+from tqdm import tqdm
 
 from requests.api import head
 
@@ -22,6 +24,7 @@ class Ya:
 
         res.raise_for_status()
         print(f"    * Папка с названием {params['path']} создана на диске")
+        print('')
         path = params['path']
 
         return path
@@ -41,25 +44,18 @@ class Ya:
     def upload_to_ya(self):
         url = 'https://cloud-api.yandex.net:443/v1/disk/resources/upload'
         path = self._create_folder()
-        if path:
-            for i, item in enumerate(self.json_dict):
-                # photos_count = int(input('Введите кол-во фотографий, которое Вы хотите сохранить на Yandeks Disk: '))
-                photos_count = 5
-                if photos_count < len(self.json_dict):
-                    print('Указанное Вами кол-во фотографий больше имещегося значения, будут загружены все фотографии из альбома')
-                    photos_count = len(self.json_dict) + 1
-                if i < photos_count:
-                    params = {"path": f"/{path}/{item['file_name']}", "url": {item['url']}}
-                    res = requests.post(url=url, headers=self.header, params=params)
-                    if res.status_code == 202:
-                        print(f"    ** Фотография №{i + 1} успешно загружена")
-                    else:
-                        print(f"    ** Возникла ошибка при загрузке фотографии, код ошибки: {res.status_code}")
+
+        photos_count = 5
+        photos_count = min(photos_count, len(self.json_dict))
+        for item in tqdm(self.json_dict[:photos_count], desc='Загрузка фотографий', bar_format='{l_bar}{bar:50}{r_bar}{bar:-50b}'):
+            sleep(.5)
+            params = {"path": f"/{path}/{item['file_name']}", "url": {item['url']}}
+            res = requests.post(url=url, headers=self.header, params=params)
+            res.raise_for_status()
+            print('')
             
-            photos_metadata = self._create_json(self.json_dict)
-            if photos_metadata:
-                print('  JSON файл со списком метаданных фотографий успешно создан на диске')
-            else:
-                print('  При создании JSON файла со списком метаданных фотографий произошла ошибка')
-            
-            return res
+        photos_metadata = self._create_json(self.json_dict)
+        if photos_metadata:
+            print('  JSON файл со списком метаданных фотографий успешно создан на диске')
+        else:
+            print('  При создании JSON файла со списком метаданных фотографий произошла ошибка')

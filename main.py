@@ -7,7 +7,6 @@ if __name__ == '__main__':
     token_vk = input('Введите значение токена для API VK: ')
     album_id = input('Введите название альбома, для скачивания фото пользователя ВК(profile, wall, saved): ')
 
-
     print('Запуск программы')
     print('#########################################################')
     photos = Vk(token_vk, album_id)
@@ -15,9 +14,9 @@ if __name__ == '__main__':
 
     if json_dict:
         token_ya = input('Введите значение токена для API Yandex: ')
+        
         uploader = Ya(token_ya, json_dict)
-        response_status = uploader.upload_to_ya()
-        response_status.raise_for_status()
+        uploader.upload_to_ya()
         print('  Все необходимые файлы были загружены')
         print('#########################################################')
         print('Выполнение программы завершено успешно')
